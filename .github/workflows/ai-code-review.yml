@@ -32,7 +32,8 @@ jobs:
       - name: AI Code Review
         id: ai
         run: |
-          DIFF=$(sed 's/"/\\"/g' review_input.txt)
+          # diff 파일을 JSON-safe 문자열로 변환
+          DIFF_JSON=$(jq -Rs . review_input.txt)
       
           RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
             -H "Content-Type: application/json" \
@@ -40,18 +41,25 @@ jobs:
             -d "{
               \"model\": \"gpt-4o-mini\",
               \"messages\": [
-                {\"role\": \"system\", \"content\": \"You are a senior developer performing a code review.\"},
-                {\"role\": \"user\", \"content\": \"Please review the following git diff and give constructive feedback:\\n\\n$DIFF\"}
+                {
+                  \"role\": \"system\",
+                  \"content\": \"You are a senior developer performing a code review.\"
+                },
+                {
+                  \"role\": \"user\",
+                  \"content\": \"Please review the following git diff and give constructive feedback:\\n\\n\" + $DIFF_JSON
+                }
               ]
             }")
       
-          REVIEW=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "❌ AI review failed"')
-          
-          echo "===== RAW OPENAI RESPONSE ====="
-          echo "$RESPONSE"      
-          echo "review<<EOF" >> $GITHUB_OUTPUT
-          echo "$REVIEW" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo \"===== RAW OPENAI RESPONSE =====\"
+          echo \"$RESPONSE\"
+      
+          REVIEW=$(echo \"$RESPONSE\" | jq -r '.choices[0].message.content // \"❌ AI review failed\"')
+      
+          echo \"review<<EOF\" >> $GITHUB_OUTPUT
+          echo \"$REVIEW\" >> $GITHUB_OUTPUT
+          echo \"EOF\" >> $GITHUB_OUTPUT
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
