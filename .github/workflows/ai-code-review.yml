@@ -1,0 +1,87 @@
+name: AI Code Review
+
+# =========================
+# STEP 1. 언제 실행할지 정의
+# =========================
+on:
+  pull_request:
+    types: [opened, synchronize, closed]
+    branches:
+      - main
+      - master
+      - develop
+
+# =========================
+# STEP 2. 실행할 작업 정의
+# =========================
+jobs:
+  review:
+    runs-on: ubuntu-latest   # GitHub가 제공하는 리눅스 서버
+
+    steps:
+      # ---------------------------------
+      # STEP 3. 레포지토리 코드 가져오기
+      # ---------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        # ↑ 이 줄은 "현재 레포의 코드를
+        #   GitHub Actions 서버로 복사"
+        #   하는 공식 액션
+
+      # ---------------------------------
+      # STEP 4. PR 변경 코드(diff) 가져오기
+      # ---------------------------------
+      - name: Get PR diff
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "📥 Fetching PR diff..."
+          curl -s \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files \
+            > diff.json
+
+      # ---------------------------------
+      # STEP 5. diff에서 patch만 추출
+      # ---------------------------------
+      - name: Extract diff patches
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "🧹 Extracting patch content..."
+          jq -r '.[] | .patch' diff.json > review_input.txt
+
+          echo "===== REVIEW INPUT ====="
+          cat review_input.txt
+
+      # ---------------------------------
+      # STEP 6. AI 코드 리뷰 (지금은 MOCK)
+      # ---------------------------------
+      - name: AI Code Review (mock)
+        if: github.event.action != 'closed'
+        run: |
+          echo "🤖 AI code review started..."
+          echo "이 부분에서 실제로는 AI API를 호출합니다." > review_result.txt
+          echo "변경된 코드에 대한 리뷰 결과 예시입니다." >> review_result.txt
+
+      # ---------------------------------
+      # STEP 7. PR에 리뷰 결과 코멘트
+      # ---------------------------------
+      - name: Comment on PR
+        if: github.event.action != 'closed'
+        run: |
+          REVIEW=$(cat review_result.txt)
+
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+            -d "{
+              \"body\": \"🤖 AI 코드 리뷰 결과\n\n$REVIEW\"
+            }"
+
+      # ---------------------------------
+      # STEP 8. merge 완료 시 알림 (예시)
+      # ---------------------------------
+      - name: Notify merge completed
+        if: github.event.action == 'closed' && github.event.pull_request.merged == true
+        run: |
+          echo "✅ PR merged into ${{ github.base_ref }}"
