@@ -88,8 +88,6 @@ jobs:
       - name: Comment on PR
         if: github.event.action != 'closed'
         run: |
-          REVIEW=$(cat review_result.txt)
-
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Content-Type: application/json" \
