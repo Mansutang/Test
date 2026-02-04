@@ -47,7 +47,7 @@ jobs:
               "messages": [
                 {
                   "role": "system",
-                  "content": "You are a helpful assistant."
+                  "content": "당신은 숙련된 시니어 개발자입니다. 모든 응답은 반드시 한국어로 작성하세요."
                 },
                 {
                   "role": "user",
