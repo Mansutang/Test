@@ -46,7 +46,9 @@ jobs:
             }")
       
           REVIEW=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "❌ AI review failed"')
-      
+          
+          echo "===== RAW OPENAI RESPONSE ====="
+          echo "$RESPONSE"      
           echo "review<<EOF" >> $GITHUB_OUTPUT
           echo "$REVIEW" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
